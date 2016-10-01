@@ -30,6 +30,7 @@ class ftp_server:
                 split = cmd.lower().split(" ")
                 if split[0] == "quit":
                     #disconnect socket and discard thread
+                    print ("quitting")
                 else:
                     print("Unhandled command: " + split[0])
                 print (split)
@@ -37,4 +38,4 @@ class ftp_server:
 
 if __name__ == '__main__':
   # kick it off
-  ftp_server()
+  server = ftp_server()
