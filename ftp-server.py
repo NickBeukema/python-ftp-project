@@ -3,10 +3,10 @@ import socket
 class ftp_server:
     #basic class/socket setup
     def __init__(self):
-        # self.port = 7710
-        self.port = 80
+        self.port = 7711
+        # self.port = 80
         self.server_socket = socket.socket()
-        self.server_socket.bind(("localhost", 80))
+        self.server_socket.bind(("localhost", self.port))
         self.server_socket.listen(1)
 
         #accept our command connection
@@ -19,7 +19,10 @@ class ftp_server:
     def loop(self, conn, addr):
         print ("accepted connection with: " + addr[0] + ":" + str(addr[1]))
         while True:
-            print ("true")
+            cmd = conn.recv(256)
+            if cmd:
+              print('Recieved:', cmd)
 
-#kick it off
-ftp_server()
+if __name__=='__main__':
+  # kick it off
+  ftp_server()
