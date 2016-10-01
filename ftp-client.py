@@ -94,4 +94,5 @@ class FtpClient:
     def hi(self):
         self.ctrlSock.sendall("cmd param1 param2")
 
-FtpClient()
+if __name__ == '__main__':
+  client = ftp_client()

@@ -3,8 +3,7 @@ import socket
 class ftp_server:
     #basic class/socket setup
     def __init__(self):
-        # self.port = 7710
-        self.port = 7710
+        self.port = 7711
         self.server_socket = socket.socket()
         self.server_socket.bind(("localhost", self.port))
         self.server_socket.listen(1)
@@ -36,5 +35,6 @@ class ftp_server:
                 print (split)
                 print ("cmd: " + cmd)
 
-#kick it off
-ftp_server()
+if __name__ == '__main__':
+  # kick it off
+  ftp_server()
