@@ -28,7 +28,11 @@ class ftp_server:
                     cmd = cmd.rstrip("\r\n")
 
                 print (len(cmd))
-                split = cmd.split(" ")
+                split = cmd.lower().split(" ")
+                if split[0] == "quit":
+                    #disconnect socket and discard thread
+                else:
+                    print("Unhandled command: " + split[0])
                 print (split)
                 print ("cmd: " + cmd)
 
