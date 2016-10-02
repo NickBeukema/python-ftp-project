@@ -1,32 +1,23 @@
 import socket
+import threading
+import sys
 
-class ftp_server:
-    #basic class/socket setup
-    def __init__(self):
-        self.port = 7711
-        self.server_socket = socket.socket()
-        self.server_socket.bind(("localhost", self.port))
-        self.server_socket.listen(1)
+class ftp_command_thread(threading.Thread):
+    def __init__(self, socket):
+        self.socket = socket
+        threading.Thread.__init__(self)
 
-        self.get_connection()
-
-    def get_connection(self):
-        conn, addr = self.server_socket.accept()
-        self.loop(conn, addr)
-
-    #establishes connection from a client, need to setup to receive commands and act accordingly
-    def loop(self, conn, addr):
-        print ("accepted connection with: " + addr[0] + ":" + str(addr[1]))
+    def run(self):
         while True:
-            cmd = conn.recv(256)
+            cmd = str(self.socket.recv(256), "utf-8")
             if cmd:
                 if not cmd.endswith("\r\n"):
                     print ("ERRORONIOUS CMD FROM CLIENT")
+                    print (cmd)
                     continue
                 else:
                     cmd = cmd.rstrip("\r\n")
 
-                print (len(cmd))
                 split = cmd.lower().split(" ")
                 if split[0] == "quit":
                     #disconnect socket and discard thread
@@ -35,6 +26,28 @@ class ftp_server:
                     print("Unhandled command: " + split[0])
                 print (split)
                 print ("cmd: " + cmd)
+        print ("running thread")
+
+class ftp_server:
+    #basic class/socket setup
+    def __init__(self):
+        self.port = 7711
+        self.server_socket = socket.socket()
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.bind(("localhost", self.port))
+        self.server_socket.listen(1)
+
+        while True:
+            try:
+                conn, addr = self.server_socket.accept()
+
+                print ("accepted command connection: " + addr[0] + ":" + str(addr[1]))
+                fct = ftp_command_thread(conn)
+                fct.start()
+            except:
+                print ("Unexpected error: ", sys.exc_info()[0])
+                self.server_socket.close()
+                exit()
 
 if __name__ == '__main__':
   # kick it off
