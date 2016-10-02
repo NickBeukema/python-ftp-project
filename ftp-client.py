@@ -1,13 +1,15 @@
 import socket
+import threading
+
 from lib2to3.fixer_util import String
-class FtpClient:
+class ftp_client:
     def __init__(self):
         self.ctrlSock = socket.socket()
 
         #MAIN LOOP
         ################
         while True:
-            entry_array = raw_input("Please enter command: ").lower().split(" ")
+            entry_array = input("Please enter command: ").lower().split(" ")
             if entry_array[0] == "connect":
                 self.connect(entry_array)
             elif entry_array[0] == "list":
@@ -30,6 +32,7 @@ class FtpClient:
         if len(entry_array) != 3:
             print("Invalid command - CONNECT Parameters: <server name/IP address> <server port>")
             return
+
 
         #Parse control port to integer value
         try:
@@ -87,12 +90,15 @@ class FtpClient:
             print("Invalid command - QUIT requires no additional parameters")
             return
         else:
-            self.ctrlSock.send("QUIT\r\n")
+            self.send("QUIT")
             print ("Quitting")
             exit()
 
     def hi(self):
-        self.ctrlSock.sendall("cmd param1 param2")
+        self.send("cmd param1 param2")
+
+    def send(self, message, encoding="utf-8"):
+        self.ctrlSock.sendall(bytearray(message + "\r\n", encoding))
 
 if __name__ == '__main__':
   client = ftp_client()
