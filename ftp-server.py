@@ -12,7 +12,7 @@ class ftp_command_thread(threading.Thread):
             cmd = str(self.socket.recv(256), "utf-8")
             if cmd:
                 if not cmd.endswith("\r\n"):
-                    print ("ERRORONIOUS CMD FROM CLIENT")
+                    print ("ERRONEOUS CMD FROM CLIENT")
                     print (cmd)
                     continue
                 else:
@@ -26,7 +26,6 @@ class ftp_command_thread(threading.Thread):
                     print("Unhandled command: " + split[0])
                 print (split)
                 print ("cmd: " + cmd)
-        print ("running thread")
 
 class ftp_server:
     #basic class/socket setup
