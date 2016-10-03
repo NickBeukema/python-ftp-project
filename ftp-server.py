@@ -67,23 +67,6 @@ class ftp_command_thread(threading.Thread):
       the_file.close()
       ## TODO: Close data connection
       self.socket.send('226 Transfer complete.\r\n')
-      
-    
-    def openDataConn(self):
-#         self.dataSocket 
-        try:
-            self.dataSocket.connect(("127.0.0.1", 6548))    #Can we hard code this port number?
-            print("Data connection established.")
-        except ConnectionRefusedError:
-            print("Failed to establish data connection") 
-            exit()        
-       
-        return
-    
-    
-    def closeDataConn(self):
-        self.dataSocket.close()
-        return
         
 
 

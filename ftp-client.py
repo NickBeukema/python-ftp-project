@@ -4,7 +4,6 @@ import os
 import sys
 
 from lib2to3.fixer_util import String
-from unittest.test.testmock.testmock import Something
 
 
 class ftp_data_thread(threading.Thread):
