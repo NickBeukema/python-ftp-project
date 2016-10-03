@@ -25,21 +25,34 @@ class ftp_command_thread(threading.Thread):
                 if split[0] == "quit":
                     #disconnect socket and discard thread
                     print ("quitting")
+                elif split[0] == "list":
+                    self.list()
                 else:
                     print("Unhandled command: " + split[0])
                 print (split)
                 print ("cmd: " + cmd)
 
-    def list():
-      ## TODO: Start data connection
-      files_in_dir = os.listdir(self.current_dir).sort()
-
-      file_string = "\n".join(files_in_dir)
+    def list(self):
+        # Open data connection
+        dataSocket = socket.socket()
+        dataSocket.connect(("127.0.0.1", 6548))    #Can we hard code this port number?
+        print("Data connection established.")
+          
+#         files_in_dir = os.listdir(self.current_dir).sort()
+#         file_string = "\n".join(files_in_dir)
 
       ## TODO: Send file list
-      ## TODO: Close data connection
+      
+        # Close data connection
+        dataSocket.close()
+        
+        return
+    
 
     def retr(filename):
+      # Open data connection
+      self.openDataConn()
+      
       the_file = open(filename, 'rb')
       data = the_file.read(1024)
 
@@ -54,6 +67,24 @@ class ftp_command_thread(threading.Thread):
       the_file.close()
       ## TODO: Close data connection
       self.socket.send('226 Transfer complete.\r\n')
+      
+    
+    def openDataConn(self):
+#         self.dataSocket 
+        try:
+            self.dataSocket.connect(("127.0.0.1", 6548))    #Can we hard code this port number?
+            print("Data connection established.")
+        except ConnectionRefusedError:
+            print("Failed to establish data connection") 
+            exit()        
+       
+        return
+    
+    
+    def closeDataConn(self):
+        self.dataSocket.close()
+        return
+        
 
 
 class ftp_server:
