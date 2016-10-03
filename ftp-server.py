@@ -6,6 +6,8 @@ import os
 class ftp_command_thread(threading.Thread):
     def __init__(self, socket):
         self.socket = socket
+        self.current_dir = os.path.abspath('.')
+
         threading.Thread.__init__(self)
 
     def run(self):
@@ -30,14 +32,29 @@ class ftp_command_thread(threading.Thread):
 
     def list():
       ## TODO: Start data connection
-
-      currdir=os.path.abspath('.')
-      files_in_dir = os.listdir(currdir).sort()
+      files_in_dir = os.listdir(self.current_dir).sort()
 
       file_string = "\n".join(files_in_dir)
 
       ## TODO: Send file list
       ## TODO: Close data connection
+
+    def retr(filename):
+      the_file = open(filename, 'rb')
+      data = the_file.read(1024)
+
+      while data:
+        ## TODO: Send the file part
+        ## self.data_sock.send(data)
+        data = the_file.read(1024)
+
+      ## Can we send it all at once?
+      ## self.data_sock.send(the_file.read())
+
+      the_file.close()
+      ## TODO: Close data connection
+      self.socket.send('226 Transfer complete.\r\n')
+
 
 class ftp_server:
     #basic class/socket setup
