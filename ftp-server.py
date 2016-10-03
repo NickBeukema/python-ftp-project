@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+import os
 
 class ftp_command_thread(threading.Thread):
     def __init__(self, socket):
@@ -26,6 +27,17 @@ class ftp_command_thread(threading.Thread):
                     print("Unhandled command: " + split[0])
                 print (split)
                 print ("cmd: " + cmd)
+
+    def list():
+      ## TODO: Start data connection
+
+      currdir=os.path.abspath('.')
+      files_in_dir = os.listdir(currdir).sort()
+
+      file_string = "\n".join(files_in_dir)
+
+      ## TODO: Send file list
+      ## TODO: Close data connection
 
 class ftp_server:
     #basic class/socket setup
