@@ -2,11 +2,13 @@ import socket
 import threading
 import sys
 import os
+import pdb
 
 class ftp_command_thread(threading.Thread):
     def __init__(self, socket):
         self.socket = socket
         self.current_dir = os.path.abspath('.')
+        self.data_socket = None
 
         threading.Thread.__init__(self)
 
@@ -32,22 +34,38 @@ class ftp_command_thread(threading.Thread):
                 print (split)
                 print ("cmd: " + cmd)
 
+    def send_ctrl_response(self, message, encoding="utf-8"):
+      self.socket.sendall(bytearray(message + "\r\n", encoding))
+
+    def open_data_socket(self):
+        if self.data_socket is None:
+          self.send_ctrl_response('150 About to open data connection.')
+          try:
+            self.data_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            self.data_socket.connect(("127.0.0.1", 6548))
+            print("Data connection established.")
+          except:
+            self.send_ctrl_response('425 Can’t open data connection.')
+        else:
+          self.send_ctrl_response('125 Data connection already open, transfer starting')
+
+    def close_data_socket(self):
+        self.data_socket.close()
+        self.data_socket = None
+        self.send_ctrl_response('226 Closing data connection.  Requested file action successful.')
+
     def list(self):
         # Open data connection
-        dataSocket = socket.socket()
-        dataSocket.connect(("127.0.0.1", 6548))    #Can we hard code this port number?
-        print("Data connection established.")
-          
-#         files_in_dir = os.listdir(self.current_dir).sort()
-#         file_string = "\n".join(files_in_dir)
+        self.open_data_socket()
 
-      ## TODO: Send file list
-      
-        # Close data connection
-        dataSocket.close()
+        try:
+          files_in_dir = os.listdir(self.current_dir).sort()
+          file_string = "\n".join(files_in_dir)
+          self.data_socket.send(file_string)
+        except:
+          self.send_ctrl_response('451 Requested action aborted: local error in processing.')
         
-        return
-    
+        self.close_data_socket()
 
     def retr(filename):
       # Open data connection

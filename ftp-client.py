@@ -2,6 +2,7 @@ import socket
 import threading
 import os
 import sys
+import pdb
 
 from lib2to3.fixer_util import String
 
@@ -79,8 +80,13 @@ class ftp_client:
             print("Invalid command - LIST requires no additional parameters")
             return
 
+
         self.send("LIST")
         self.openDataPort()
+        resp=self.ctrlSock.recv(256)
+
+        pdb.set_trace()
+
         #TODO receive list of files
         #TODO print list of files
         #TODO close data port
@@ -136,11 +142,12 @@ class ftp_client:
         dataPort = 6548    #Do we need to send this value to server or can we hard code it on both ends?
         dataSock = socket.socket()
         dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        dataSock.bind(("localhost", dataPort))
+        dataSock.bind(("127.0.0.1", dataPort))
         dataSock.listen(1)
         
         while True:
             try:
+                print ("Waiting for server to connect to data socket")
                 conn, addr = dataSock.accept()
                 print ("accepted data connection: " + addr[0] + ":" + str(addr[1]))  
                 fct = ftp_data_thread(conn)
