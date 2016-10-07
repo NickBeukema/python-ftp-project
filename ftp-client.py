@@ -7,17 +7,24 @@ import pdb
 from lib2to3.fixer_util import String
 
 
-class ftp_data_thread(threading.Thread):
-    def __init__(self, socket):
-        self.socket = socket
-        self.current_dir = os.path.abspath('.')
-
-        threading.Thread.__init__(self)
-
-    def run(self):
-        #TODO data transfer
-        print("Transfer some data here")
-        return()
+# class ftp_data_thread(threading.Thread):
+#     def __init__(self, socket):
+#         self.socket = socket
+#         self.current_dir = os.path.abspath('.')
+#  
+#         threading.Thread.__init__(self)
+#  
+#     def run(self):
+#         f = open("file1.txt", "w+")
+#         data = self.dataConn.recv(1024)
+#         while data:
+#             print("Receiving... ") 
+#             f.write(data)
+#             data = self.dataConn.recv(1024)
+#         else:
+#             print("data: not found")
+#         f.close()
+#         return
 
 
 
@@ -82,10 +89,10 @@ class ftp_client:
 
 
         self.send("LIST")
-        self.openDataPort()
-        resp=self.ctrlSock.recv(256)
-
-        pdb.set_trace()
+        self.openDataPort("LIST")
+#         resp=str(self.ctrlSock.recv(256), "utf-8")
+#         print("control " + resp)
+#         pdb.set_trace()
 
         #TODO receive list of files
         #TODO print list of files
@@ -103,6 +110,7 @@ class ftp_client:
             return
         
         self.send("RETR " + entry_array[1])
+        self.openDataPort("RETR")
 
 
     #STORE FUNCTION
@@ -114,6 +122,7 @@ class ftp_client:
             return
         
         self.send("STOR " + entry_array[1])
+        self.openDataPort("STOR")
 
 
     #QUIT FUNCTION
@@ -138,24 +147,58 @@ class ftp_client:
         self.ctrlSock.sendall(bytearray(message + "\r\n", encoding))
         
         
-    def openDataPort(self):
-        self.dataPort = 6548    #Do we need to send this value to server or can we hard code it on both ends?
+    def openDataPort(self, sentFrom):
+        self.dataPort = 6548
         self.dataSock = socket.socket()
         self.dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.dataSock.bind(("127.0.0.1", self.dataPort))
         self.dataSock.listen(1)
+        print("Sent from: " + sentFrom)
         
         while True:
             try:
                 print ("Waiting for server to connect to data socket")
                 self.dataConn, addr = self.dataSock.accept()
-                print ("accepted data connection: " + addr[0] + ":" + str(addr[1]))  
-                self.fct = ftp_data_thread(self.dataConn)
-                self.fct.start()
+#                 print ("Accepted data connection: " + addr[0] + ":" + str(addr[1]))
+                resp=str(self.ctrlSock.recv(256), "utf-8")
+                print(resp) 
+                
+                #Print file list sent from server
+                if sentFrom == "LIST":
+                    data = str(self.dataConn.recv(1024), "utf-8")
+                    print("Receiving file list... \n")
+                    while data: 
+                        print(data)
+                        data = self.dataConn.recv(1024)
+                        
+#                 #Send file to server
+#                 elif sentFrom == "STOR":
+#                     f = open("file1.txt", "wb")
+#                     data = self.dataConn.recv(1024)
+#                     print("Sending file... \n") 
+#                     while data:
+#                         f.write(data)
+#                         data = self.dataConn.recv(1024)
+#                         
+#                 #Retrieve file from server
+#                 elif sentFrom == "RETR":
+#                     f = open("file1.txt", "wb")
+#                     data = self.dataConn.recv(1024)
+#                     print("Retrieving file... \n") 
+#                     while data:
+#                         f.write(data)
+#                         data = self.dataConn.recv(1024)
+                        
+                f.close()
+                print("Done receiving")
+                self.dataConn.close()
+#                 self.fct = ftp_data_thread(self.dataConn)
+#                 self.fct.start()
+
                 return
             except:
                 print ("Unexpected error: ", sys.exc_info()[0])
-                dataSock.close()
+                self.dataSock.close()
                 exit()
 
     
