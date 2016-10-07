@@ -31,7 +31,7 @@ class ftp_command_thread(threading.Thread):
                     self.list()
                 else:
                     print("Unhandled command: " + split[0])
-                print (split)
+
                 print ("cmd: " + cmd)
 
     def send_ctrl_response(self, message, encoding="utf-8"):
@@ -64,7 +64,6 @@ class ftp_command_thread(threading.Thread):
           file_string = ""
           for file in files_in_dir:
             file_string = file_string + file + "\n"
-          print(file_string)
           self.data_socket.sendall(bytearray(file_string + "\r\n", "utf-8"))
         except:
           self.send_ctrl_response('451 Requested action aborted: local error in processing.')
