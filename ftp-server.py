@@ -59,9 +59,10 @@ class ftp_command_thread(threading.Thread):
         self.open_data_socket()
 
         try:
-          files_in_dir = os.listdir(self.current_dir).sort()
+          files_in_dir = os.listdir(self.current_dir)
+          files_in_dir.sort()
           file_string = "\n".join(files_in_dir)
-          self.data_socket.send(file_string)
+          self.data_socket.sendall(bytearray(file_string + "\r\n", "utf-8"))
         except:
           self.send_ctrl_response('451 Requested action aborted: local error in processing.')
         

@@ -139,19 +139,19 @@ class ftp_client:
         
         
     def openDataPort(self):
-        dataPort = 6548    #Do we need to send this value to server or can we hard code it on both ends?
-        dataSock = socket.socket()
-        dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        dataSock.bind(("127.0.0.1", dataPort))
-        dataSock.listen(1)
+        self.dataPort = 6548    #Do we need to send this value to server or can we hard code it on both ends?
+        self.dataSock = socket.socket()
+        self.dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.dataSock.bind(("127.0.0.1", self.dataPort))
+        self.dataSock.listen(1)
         
         while True:
             try:
                 print ("Waiting for server to connect to data socket")
-                conn, addr = dataSock.accept()
+                self.dataConn, addr = self.dataSock.accept()
                 print ("accepted data connection: " + addr[0] + ":" + str(addr[1]))  
-                fct = ftp_data_thread(conn)
-                fct.start()
+                self.fct = ftp_data_thread(self.dataConn)
+                self.fct.start()
                 return
             except:
                 print ("Unexpected error: ", sys.exc_info()[0])
