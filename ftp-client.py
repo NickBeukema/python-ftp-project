@@ -6,19 +6,20 @@ import pdb
 
 from lib2to3.fixer_util import String
 
+ftp_client_default_port = 7712
 
 # class ftp_data_thread(threading.Thread):
 #     def __init__(self, socket):
 #         self.socket = socket
 #         self.current_dir = os.path.abspath('.')
-#  
+#
 #         threading.Thread.__init__(self)
-#  
+#
 #     def run(self):
 #         f = open("file1.txt", "w+")
 #         data = self.dataConn.recv(1024)
 #         while data:
-#             print("Receiving... ") 
+#             print("Receiving... ")
 #             f.write(data)
 #             data = self.dataConn.recv(1024)
 #         else:
@@ -71,12 +72,14 @@ class ftp_client:
         try:
 #             self.ctrlSock.connect(("127.0.0.1", 7711))
             self.ctrlSock.connect((entry_array[1], ctrlPort))
+            #after connection is established, we need to wait for the 220 response from the server "awaiting input"
+            self.get_response()
         except ConnectionRefusedError:
             print("Connection refused - check port number")
-            return              
+            return
 
         print("Connection established on port {}.".format(ctrlPort))
-        
+
 
 
     #LIST FUNCTION
@@ -97,7 +100,7 @@ class ftp_client:
         total_payload += data
 
         print("Receiving file list... \n")
-        while data: 
+        while data:
           data = self.dataConn.recv(1024)
           if data:
             total_payload += data
@@ -117,14 +120,14 @@ class ftp_client:
         if len(entry_array) != 2:
             print("Invalid command - RETR Parameters: <filename>")
             return
-        
+
         self.send("RETR " + entry_array[1])
         self.openDataPort()
 
         # Retrieve file from server
         # f = open("file1.txt", "wb")
         # data = self.dataConn.recv(1024)
-        # print("Retrieving file... \n") 
+        # print("Retrieving file... \n")
         # while data:
         #   f.write(data)
         #   data = self.dataConn.recv(1024)
@@ -141,14 +144,14 @@ class ftp_client:
         if len(entry_array) != 2:
             print("Invalid command - STOR Parameters: <filename>")
             return
-        
+
         self.send("STOR " + entry_array[1])
         self.openDataPort()
 
         # Send file to server
         # f = open("file1.txt", "wb")
         # data = self.dataConn.recv(1024)
-        # print("Sending file... \n") 
+        # print("Sending file... \n")
         # while data:
         #   f.write(data)
         #   data = self.dataConn.recv(1024)
@@ -171,6 +174,19 @@ class ftp_client:
             #TODO: Should we exit program here or just end the connection with the server?
             exit()
 
+    def get_response(self):
+        response = self.ctrlSock.recv(256, "utf-8")
+        self.parse_response(response)
+
+    def parse_response(self, response):
+        if (len(response) == 3):
+            response_code = response
+        else:
+            response_code = response[:3]
+            response_message = response[4:]
+
+        print("response code: " + response_code + ", message: " + response_message)
+
 
     def hi(self):
         self.send("cmd param1 param2")
@@ -178,7 +194,7 @@ class ftp_client:
 
     def send(self, message, encoding="utf-8"):
         self.ctrlSock.sendall(bytearray(message + "\r\n", encoding))
-        
+
 
     def openDataPort(self):
 #       self.fct = ftp_data_thread(self.dataConn)
@@ -188,7 +204,7 @@ class ftp_client:
         self.dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.dataSock.bind(("127.0.0.1", self.dataPort))
         self.dataSock.listen(1)
-        
+
         while True:
             try:
                 print ("Waiting for server to connect to data socket")
@@ -197,8 +213,8 @@ class ftp_client:
                 # print ("Accepted data connection: " + addr[0] + ":" + str(addr[1]))
 
                 resp=str(self.ctrlSock.recv(256), "utf-8")
-                print(resp) 
-                
+                print(resp)
+
 #                 self.fct = ftp_data_thread(self.dataConn)
 #                 self.fct.start()
 
@@ -211,9 +227,9 @@ class ftp_client:
     def closeDataPort(self):
       print("Done receiving")
       self.dataConn.close()
-    
-                
-                        
+
+
+
 
 if __name__ == '__main__':
   client = ftp_client()
