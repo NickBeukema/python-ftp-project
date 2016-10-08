@@ -1,0 +1,85 @@
+pg 8: Standard replies
+      are sent from the server-PI to the user-PI over the control
+      connection in response to the commands.
+
+establishing data connections pg 18
+
+The user-process default data port is the same as the control connection port (i.e., U).
+so in our case 7711
+
+The server-process default data port is the port adjacent to the control connection port (i.e., L-1)
+in our case 7710
+
+The FTP request command determines the direction of the data transfer.  The server, upon receiving the transfer request, will initiate the data connection to the port.
+Only the user can request a change of default port
+
+The server MUST close the data connection under the following conditions:
+server has sent the requested data
+server receives an ABORT command
+port is changed by the user
+control connection is closed
+an irrecoverable error condition occurs
+
+file transfer functions pg 25
+the user pi is responsible for sending ftp commands and interpreting the replies received
+the server interprets commands, sends replies and directs its DTP to set up the data connection and transfer the data
+
+LOGOUT (QUIT):
+terminates a User if file transfer is not in progress, the server closes the control connection. If file transfer is in progress, the connection will remain open for result response and the server will then close it.
+also happens if an unexpected close on the control connection happens
+(ABOR) and a (QUIT)
+
+Transfer Parameter Commands pg 27
+All data transfer parameters have default values, and the commands specifying data transfer parameters are required only if the default values are to be changed. The default value is the last specified value, or if no value has been specified, the standard default value is as stated here.  The server must "remember"
+
+PASSIVE (PASV):
+command requests the server-DTP to "listen" on a data port (which is not the default) and to wait for a connection rather than initiate one upon receipt of a transfer command. The response to this command includes the host and port address this server is listening on.
+
+FTP SERVICE COMMANDS pg 29
+
+RETRIEVE (RETR):
+this command causes the server-DTP to transfer a copy of the file, specified in the pathname, to the server- or user-DTP at the other end of the data connection. The status and contents of the file at the server site shall be unaffected.
+
+STORE (STOR):
+This command causes the server-DTP to accept the data transferred via the data connection and to store the data as a file at the server site. If the file specified in the pathname exists at the server site, then its contents shall be replaced by the data being transfered. A new file is created at the server site if the file specified in the pathname does not already exists.
+
+LIST (LIST):
+This command causes a list to be sent from the server to the passive DTP. If the pathname specifies a directory or other group of files, the server should transfer a list of files in the specified directory. If the pathname specifies a file then the server should send current information on the file. A null argument implies the user's current working or default directory. The data transfer is over the data connection in type SCII or EBCDIC. Since the information on a file may vary widely from system to system, this information may be hard to use automatically in a program, but may be quite useful to a human user.
+
+An FTP reply consists of a three digit number followed by some text. The number is intended for use by automata to determine what state to enter next; the text is intended for the human user.
+
+In depth reply codes and the number meaning: pg 37-43
+
+The user-DTP must "listen" on a specified data port; this may be the default user port (U) or a port specified in the PORT command. The server shall initiate the data connection from his own default data port (L-1) using the specified user data port. The direction of the transfer and the port used will be determined by the FTP service command.
+L = 7711 (default is 21)
+L-1 = 7710 (duh)
+U = 7711?
+
+FTP COMMANDS SYNTAX:
+brackets mean the params are optional
+
+PASV<CRLF>
+PORT<SP><host-port><CRLF>
+
+Required:
+QUIT<CRLF>
+RETR<SP><pathname><CRLF>
+STOR<SP><pathname><CRLF>
+LIST [<SP><pathname>]<CRLF>
+
+arguments:
+<host-port> ::= <host-number>,<port-number>
+<host-number> ::= <number>,<number>,<number>,<number>
+<port-number> ::= <number>,<number>
+<pathname> ::= <string>
+<string> ::= <char> | <char><string>
+
+SEQUENCING OF COMMANDS AND REPLIES pg 49:
+The communication between the user and server is intended to be an alternating dialog. As such, the user issues an FTP command and the server responds with a prompt PRIMARY reply. The user should wait for this initial primary success or failure response before sending further commands.
+
+
+Server will send a 220 reply, "awaiting input", when the connection is completed. The user should wait for this greeting message before sending any commands. If unable to accept right away server sends a 120 "expected delay" reply and a 220 when ready.
+
+command-reply sequence pg 50
+
+multiline replies pg 36
