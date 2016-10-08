@@ -46,6 +46,8 @@ class ftp_command_thread(threading.Thread):
 
         if split[0] == "quit":
           self.quit()
+          #return ends the thread?
+          return
         elif split[0] == "list":
           print("list")
           if len(split) == 2:
@@ -93,8 +95,9 @@ class ftp_command_thread(threading.Thread):
     self.data_socket = None
     self.send_ctrl_response('226 Closing data connection.  Requested file action successful.')
 
-
   def quit(self):
+    self.send_ctrl_response("221 closing control connection")
+    self.socket.close()
     print("quitting")
 
 

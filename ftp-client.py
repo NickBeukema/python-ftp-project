@@ -168,9 +168,9 @@ class ftp_client:
       return
     else:
       self.send("QUIT")
-      print("Quitting")
+      response = self.get_response()
       # TODO: Should we exit program here or just end the connection with the server?
-      exit()
+      #exit()
 
   def get_response(self):
     response = self.ctrlSock.recv(1024)
@@ -184,7 +184,13 @@ class ftp_client:
       response_code = response[:3]
       response_message = response[4:]
 
-    print("response code: " + response_code + ", message: " + response_message)
+    if response_code == "221":
+      print("response code: " + response_code + ", message: " + response_message)
+      print("quitting")
+      self.ctrlSock.close()
+      exit()
+    else:
+      print("response code: " + response_code + ", message: " + response_message)
 
   def hi(self):
     self.send("cmd param1 param2")
