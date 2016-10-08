@@ -59,7 +59,9 @@ class ftp_client:
     # Make sure correct amount of parameters were passed
     if len(entry_array) != 3:
       print("Invalid command - CONNECT Parameters: <server name/IP address> <server port>")
-      return
+      print ("USING DEFAULT TO MAKE OUR LIVES EASIER")
+      entry_array = ["connect", "127.0.0.1", 7711]
+      #return
 
     # Parse control port to integer value
     try:
@@ -171,12 +173,13 @@ class ftp_client:
       exit()
 
   def get_response(self):
-    response = self.ctrlSock.recv(256, "utf-8")
-    self.parse_response(response)
+    response = self.ctrlSock.recv(1024)
+    self.parse_response(response.decode("utf-8"))
 
   def parse_response(self, response):
     if (len(response) == 3):
       response_code = response
+      response_message = ""
     else:
       response_code = response[:3]
       response_message = response[4:]

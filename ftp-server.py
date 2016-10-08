@@ -29,7 +29,7 @@ class ftp_command_thread(threading.Thread):
 
   def run(self):
     while True:
-      self.socket.send("220 awaiting input")
+      self.send_ctrl_response("220 awaiting input")
 
       # wait for commands
       cmd = str(self.socket.recv(1024), "utf-8")
