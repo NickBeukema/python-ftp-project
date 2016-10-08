@@ -2,11 +2,13 @@ import socket
 import threading
 import sys
 import os
+import pdb
 
 class ftp_command_thread(threading.Thread):
     def __init__(self, socket):
         self.socket = socket
         self.current_dir = os.path.abspath('.')
+        self.data_socket = None
 
         threading.Thread.__init__(self)
 
@@ -25,21 +27,53 @@ class ftp_command_thread(threading.Thread):
                 if split[0] == "quit":
                     #disconnect socket and discard thread
                     print ("quitting")
+                elif split[0] == "list":
+                    self.list()
                 else:
                     print("Unhandled command: " + split[0])
-                print (split)
+
                 print ("cmd: " + cmd)
 
-    def list():
-      ## TODO: Start data connection
-      files_in_dir = os.listdir(self.current_dir).sort()
+    def send_ctrl_response(self, message, encoding="utf-8"):
+      self.socket.sendall(bytearray(message + "\r\n", encoding))
 
-      file_string = "\n".join(files_in_dir)
+    def open_data_socket(self):
+        if self.data_socket is None:
+          self.send_ctrl_response('150 About to open data connection.')
+          try:
+            self.data_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            self.data_socket.connect(("127.0.0.1", 6548))
+            print("Data connection established.")
+          except:
+            self.send_ctrl_response('425 Can’t open data connection.')
+        else:
+          self.send_ctrl_response('125 Data connection already open, transfer starting')
 
-      ## TODO: Send file list
-      ## TODO: Close data connection
+    def close_data_socket(self):
+        self.data_socket.close()
+        self.data_socket = None
+        self.send_ctrl_response('226 Closing data connection.  Requested file action successful.')
+
+    def list(self):
+        # Open data connection
+        self.open_data_socket()
+
+        try:
+          files_in_dir = os.listdir(self.current_dir)
+          files_in_dir.sort()
+          file_string = ""
+          for file in files_in_dir:
+            file_string = file_string + file + "\n"
+          self.data_socket.sendall(bytearray(file_string + "\r\n", "utf-8"))
+        except:
+          self.send_ctrl_response('451 Requested action aborted: local error in processing.')
+        
+        self.close_data_socket()
 
     def retr(filename):
+      # Open data connection
+      self.openDataConn()
+      
       the_file = open(filename, 'rb')
       data = the_file.read(1024)
 
@@ -54,6 +88,7 @@ class ftp_command_thread(threading.Thread):
       the_file.close()
       ## TODO: Close data connection
       self.socket.send('226 Transfer complete.\r\n')
+        
 
 
 class ftp_server:
