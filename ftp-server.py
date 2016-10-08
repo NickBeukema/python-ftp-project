@@ -8,16 +8,37 @@ command_port = 7711
 data_port = command_port - 1
 ftp_client_default_port = 7712  # we can't use default ports on the same computer, in a real ftp client the default port for the client is the command_port
 
+data_thread_status = ""
+c = threading.Condition()
+
 
 class ftp_data_thread(threading.Thread):
-
-  def __init__(self, socket, init=False):
-    self.data_socket = socket.socket()
+  def __init__(self, socket, cmd, data):
+    self.data_socket = socket
     self.current_dir = os.path.abspath("./ftp-files/")
+    self.cmd = cmd
+    self.data = data
+
     threading.Thread.__init__(self)
 
   def run(self):
     print("running data thread")
+    if self.cmd == "list":
+      self.list()
+    else:
+      print('unhandled data_thread command')
+
+  def retr(self, filename):
+    print('data_thread retr')
+
+  def stor(self, filename):
+    print('data_thread stor')
+
+  def list(self):
+    self.data_socket.connect(("127.0.0.1", 6548))
+    self.data_socket.sendall(bytearray(self.data + "\r\n", "utf-8"))
+    self.data_socket.close()
+    print('data_thread list')
 
 
 class ftp_command_thread(threading.Thread):
@@ -46,14 +67,14 @@ class ftp_command_thread(threading.Thread):
 
         if split[0] == "quit":
           self.quit()
-          #return ends the thread?
+          # return ends the thread?
           return
         elif split[0] == "list":
           print("list")
           if len(split) == 2:
-              self.list(split[1])
+            self.list(split[1])
           else:
-              self.list(self.current_dir)
+            self.list(self.current_dir)
         elif split[0] == "retr":
           print("retr")
           if len(split) == 2:
@@ -72,10 +93,8 @@ class ftp_command_thread(threading.Thread):
 
       print("cmd: " + cmd)
 
-
   def send_ctrl_response(self, message, encoding="utf-8"):
     self.socket.sendall(bytearray(message + "\r\n", encoding))
-
 
   def open_data_socket(self):
     if self.data_socket is None:
@@ -89,7 +108,6 @@ class ftp_command_thread(threading.Thread):
     else:
       self.send_ctrl_response('125 Data connection already open, transfer starting')
 
-
   def close_data_socket(self):
     self.data_socket.close()
     self.data_socket = None
@@ -100,10 +118,8 @@ class ftp_command_thread(threading.Thread):
     self.socket.close()
     print("quitting")
 
-
   def list(self, dir):
-    # Open data connection
-    self.open_data_socket()
+    data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
       files_in_dir = os.listdir(self.current_dir)
@@ -111,12 +127,15 @@ class ftp_command_thread(threading.Thread):
       file_string = ""
       for file in files_in_dir:
         file_string = file_string + file + "\n"
-      self.data_socket.sendall(bytearray(file_string + "\r\n", "utf-8"))
+        # self.data_socket.sendall(bytearray(file_string + "\r\n", "utf-8"))
+
+      data_thread = ftp_data_thread(socket=data_socket, cmd="list", data=file_string)
+      self.send_ctrl_response('150 About to open data connection.')
+      data_thread.start()
+      data_thread.join()
+
     except:
       self.send_ctrl_response('451 Requested action aborted: local error in processing.')
-
-    self.close_data_socket()
-
 
   def retr(self, filename):
     # Open data connection
@@ -135,8 +154,7 @@ class ftp_command_thread(threading.Thread):
 
     the_file.close()
     ## TODO: Close data connection
-    self.socket.send('226 Transfer complete.\r\n')
-
+    self.send_ctrl_response('226 Transfer complete.')
 
   def stor(self, filename):
     print("storing file " + filename)

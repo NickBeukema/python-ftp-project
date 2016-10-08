@@ -59,9 +59,9 @@ class ftp_client:
     # Make sure correct amount of parameters were passed
     if len(entry_array) != 3:
       print("Invalid command - CONNECT Parameters: <server name/IP address> <server port>")
-      print ("USING DEFAULT TO MAKE OUR LIVES EASIER")
+      print("USING DEFAULT TO MAKE OUR LIVES EASIER")
       entry_array = ["connect", "127.0.0.1", 7711]
-      #return
+      # return
 
     # Parse control port to integer value
     try:
@@ -170,7 +170,7 @@ class ftp_client:
       self.send("QUIT")
       response = self.get_response()
       # TODO: Should we exit program here or just end the connection with the server?
-      #exit()
+      # exit()
 
   def get_response(self):
     response = self.ctrlSock.recv(1024)
