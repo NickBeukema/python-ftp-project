@@ -33,7 +33,7 @@ ftp_client_default_port = 7712
 class ftp_client:
   def __init__(self):
     self.ctrlSock = socket.socket()
-
+    self.current_dir = os.path.abspath("./ftp-downloads/")
     # MAIN LOOP
     ################
     while True:
@@ -93,7 +93,6 @@ class ftp_client:
       return
 
     self.send("LIST")
-
     self.openDataPort()
 
     total_payload = ""
@@ -111,7 +110,6 @@ class ftp_client:
 
     # Close data port
     self.closeDataPort()
-    return
 
   # RETRIEVE FUNCTION
   def retr(self, entry_array):
@@ -121,9 +119,21 @@ class ftp_client:
       print("Invalid command - RETR Parameters: <filename>")
       return
 
-    self.send("RETR " + entry_array[1])
+    filename = entry_array[1]
+    self.send("RETR " + filename)
     self.openDataPort()
 
+    print ("filename: " + filename)
+
+    local_filename = self.current_dir + "\\" + filename
+    f = open(local_filename, "wb+")
+    data = self.dataConn.recv(1024)
+
+    while data:
+      f.write(data)
+      data = self.dataConn.recv(1024)
+
+    f.close()
     # Retrieve file from server
     # f = open("file1.txt", "wb")
     # data = self.dataConn.recv(1024)

@@ -15,7 +15,6 @@ c = threading.Condition()
 class ftp_data_thread(threading.Thread):
   def __init__(self, socket, cmd, data):
     self.data_socket = socket
-    self.current_dir = os.path.abspath("./ftp-files/")
     self.cmd = cmd
     self.data = data
 
@@ -25,21 +24,33 @@ class ftp_data_thread(threading.Thread):
     print("running data thread")
     if self.cmd == "list":
       self.list()
+    elif self.cmd == "retr":
+      self.retr()
     else:
       print('unhandled data_thread command')
 
-  def retr(self, filename):
+  def retr(self):
     print('data_thread retr')
+    try:
+      self.data_socket.connect(("127.0.0.1", 6548))
+      self.data_socket.sendall(bytearray(self.data))
+      self.data_socket.close()
+    except:
+      global data_thread_status
+      data_thread_status = "425 Can't open data connection"
 
-  def stor(self, filename):
+  def stor(self):
     print('data_thread stor')
 
-  def list(self):
-    self.data_socket.connect(("127.0.0.1", 6548))
-    self.data_socket.sendall(bytearray(self.data + "\r\n", "utf-8"))
-    self.data_socket.close()
-    print('data_thread list')
 
+  def list(self):
+    try:
+      self.data_socket.connect(("127.0.0.1", 6548))
+      self.data_socket.sendall(bytearray(self.data, "utf-8"))
+      self.data_socket.close()
+    except:
+      global data_thread_status
+      data_thread_status = "425 Can't open data connection"
 
 class ftp_command_thread(threading.Thread):
   def __init__(self, socket):
@@ -94,6 +105,7 @@ class ftp_command_thread(threading.Thread):
       print("cmd: " + cmd)
 
   def send_ctrl_response(self, message, encoding="utf-8"):
+    print ("sending ctrl response: " + message)
     self.socket.sendall(bytearray(message + "\r\n", encoding))
 
   def open_data_socket(self):
@@ -127,34 +139,47 @@ class ftp_command_thread(threading.Thread):
       file_string = ""
       for file in files_in_dir:
         file_string = file_string + file + "\n"
-        # self.data_socket.sendall(bytearray(file_string + "\r\n", "utf-8"))
 
       data_thread = ftp_data_thread(socket=data_socket, cmd="list", data=file_string)
       self.send_ctrl_response('150 About to open data connection.')
       data_thread.start()
       data_thread.join()
-
+      if data_thread_status == "":
+        self.send_ctrl_response("226 Closing data connection, requested file action successful")
+      else:
+        self.send_ctrl_response(data_thread_status)
     except:
       self.send_ctrl_response('451 Requested action aborted: local error in processing.')
 
   def retr(self, filename):
-    # Open data connection
-    self.openDataConn()
+    print ("server received retr cmd filename: " + filename)
+    filename = self.current_dir + "\\" + filename
+    print ("abs path: " + filename)
+    if not os.path.exists(filename):
+      self.send_ctrl_response("550 File Unavailable")
+      return
+    print ("file exists")
 
-    the_file = open(filename, 'rb')
-    data = the_file.read(1024)
-
-    while data:
-      ## TODO: Send the file part
-      ## self.data_sock.send(data)
-      data = the_file.read(1024)
-
-    ## Can we send it all at once?
-    ## self.data_sock.send(the_file.read())
-
-    the_file.close()
-    ## TODO: Close data connection
-    self.send_ctrl_response('226 Transfer complete.')
+    if os.access(filename, os.R_OK):
+      data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      file_data = ""
+      try:
+        file = open(filename, 'rb')
+        file_data = file.read()
+        data_thread = ftp_data_thread(socket=data_socket, cmd="retr", data=file_data)
+        self.send_ctrl_response('150 About to open data connection.')
+        print('start retr thread')
+        data_thread.start()
+        data_thread.join()
+        if data_thread_status == "":
+          self.send_ctrl_response("226 Closing data connection, requested file action successful")
+        else:
+          self.send_ctrl_response(data_thread_status)
+      except:
+        self.send_ctrl_response("450 File Unavailable")
+    else:
+      self.send_ctrl_response("550 File Unavailable")
+      return
 
   def stor(self, filename):
     print("storing file " + filename)
