@@ -148,6 +148,8 @@ class ftp_client:
 
   # STORE FUNCTION
   def stor(self, entry_array):
+    filename = self.current_dir + "\\" + entry_array[1]
+    print("stor filename: " + filename)
 
     # Make sure correct amount of parameters were passed
     if len(entry_array) != 2:
@@ -155,7 +157,16 @@ class ftp_client:
       return
 
     self.send("STOR " + entry_array[1])
+    #self.openDataPort()
+    print ("connecting to server")
     self.openDataPort()
+    print ("connected to server")
+
+    file = open(filename, "rb")
+    while True:
+      data = file.read(1024)
+      if not data: break
+      self.dataConn.sendall(data)
 
     # Send file to server
     # f = open("file1.txt", "wb")
@@ -164,9 +175,8 @@ class ftp_client:
     # while data:
     #   f.write(data)
     #   data = self.dataConn.recv(1024)
-    #
-    # f.close()
 
+    file.close()
     self.closeDataPort()
 
   # QUIT FUNCTION
@@ -216,11 +226,12 @@ class ftp_client:
     self.dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.dataSock.bind(("127.0.0.1", self.dataPort))
     self.dataSock.listen(1)
+    self.dataConn, addr = self.dataSock.accept()
 
     while True:
       try:
         print("Waiting for server to connect to data socket")
-        self.dataConn, addr = self.dataSock.accept()
+
 
         # print ("Accepted data connection: " + addr[0] + ":" + str(addr[1]))
 
