@@ -127,22 +127,22 @@ class ftp_command_thread(threading.Thread):
     print ("Sending CTRL response: " + message)
     self.socket.sendall(bytearray(message + "\r\n", encoding))
 
-  def open_data_socket(self):
-    if self.data_socket is None:
-      self.send_ctrl_response('150 About to open data connection.')
-      try:
-        self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.data_socket.connect(("127.0.0.1", 6548))
-        print("Data connection established.")
-      except:
-        self.send_ctrl_response('425 Can’t open data connection.')
-    else:
-      self.send_ctrl_response('125 Data connection already open, transfer starting')
+  # def open_data_socket(self):
+  #   if self.data_socket is None:
+  #     self.send_ctrl_response('150 About to open data connection.')
+  #     try:
+  #       self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  #       self.data_socket.connect(("127.0.0.1", 6548))
+  #       print("Data connection established.")
+  #     except:
+  #       self.send_ctrl_response('425 Can’t open data connection.')
+  #   else:
+  #     self.send_ctrl_response('125 Data connection already open, transfer starting')
 
-  def close_data_socket(self):
-    self.data_socket.close()
-    self.data_socket = None
-    self.send_ctrl_response('226 Closing data connection.  Requested file action successful.')
+  # def close_data_socket(self):
+  #   self.data_socket.close()
+  #   self.data_socket = None
+  #   self.send_ctrl_response('226 Closing data connection.  Requested file action successful.')
 
   def quit(self, commands):
     self.send_ctrl_response("221 closing control connection")
@@ -283,7 +283,6 @@ class ftp_server:
         print("Unexpected error: ", sys.exc_info()[2])
         self.server_socket.close()
         exit()
-
 
 if __name__ == '__main__':
   # kick it off
