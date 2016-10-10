@@ -53,8 +53,8 @@ class ftp_data_thread(threading.Thread):
       data_thread_status = "425 Can't open data connection"
 
     try:
+      file = open(filename, "wb+")
       print ("storing to file: " + filename)
-      file = open(filename, "wb")
       try:
         while True:
           data = self.data_socket.recv(1024)

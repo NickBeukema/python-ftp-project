@@ -31,7 +31,7 @@ class ftp_data_thread(threading.Thread):
 
   def list(self):
     print("Receiving file list")
-    total_payload = ""
+    total_payload = ""  # Concatenate list of files
     data = str(self.dataConn.recv(1024), "utf-8")
     while data:
       total_payload += data
@@ -42,10 +42,11 @@ class ftp_data_thread(threading.Thread):
 
   def retr(self):
     try:
-      print ("Retrieving file: " + self.filename)
+      # Establish full directory path
       full_filename = os.path.join(self.current_dir, self.filename)
       print ("Full Dir: " + full_filename)
-      f = open(full_filename, "wb+")
+      f = open(full_filename, "wb+")    # Opens/creates file to copy data over
+      print ("Retrieving file: " + self.filename)
       try:
         data = self.dataConn.recv(1024)
         while data:
@@ -61,21 +62,24 @@ class ftp_data_thread(threading.Thread):
     self.dataConn.close()
 
   def stor(self):
-      print ("Storing to file: " + self.filename)
-      full_filename = os.path.join(self.current_dir, self.filename)
-      print ("Full Dir: " + full_filename)
-      try:
-        f = open(full_filename, "rb")
-        while True:
-          self.data = f.read(8)
-          if not self.data: break
-          self.dataConn.sendall(self.data)
-        f.close()
-      except:
-        print("File unavailable")
-    
-      print("File stored.")
+      # Establish full directory path
+    full_filename = os.path.join(self.current_dir, self.filename)
+    print("Full Dir " + full_filename)
+    try:
+      f = open(full_filename, "rb")  # Opens file, if it exists
+      print("Storing to file: " + self.filename)
+    except:
+      print("File not found")
       self.dataConn.close()
+      return
+      
+    # Send all data in file
+    while True:
+      self.data = f.read(8)
+      if not self.data: break
+      self.dataConn.sendall(self.data)
+    f.close()
+    self.dataConn.close()
 
 
 class ftp_client:
@@ -130,6 +134,9 @@ class ftp_client:
     except ConnectionRefusedError:
       print("Connection refused - check port number")
       return
+    except OSError:
+      print("Connect request was made on an already connected socket.")
+      return
 
     print("Connection established on port {}.".format(ctrlPort))
 
@@ -143,12 +150,14 @@ class ftp_client:
       print("Invalid command - LIST requires no additional parameters")
       return
 
+    # Make sure ctrl connection is established
     try:
       self.send("LIST")
     except:
       print("You must connect to server before using this command")
       return
   
+    # Open data port and receive list
     self.openDataPort(cmd="list")
 
 
@@ -162,12 +171,14 @@ class ftp_client:
 
     filename = entry_array[1]
     
+    # Make sure ctrl connection is established
     try:
       self.send("RETR " + filename)
     except:
       print("You must connect to server before using this command")
       return
   
+    #Open data port and retrieve file
     self.openDataPort(cmd="retr", filename=filename)
 
 
@@ -181,12 +192,14 @@ class ftp_client:
   
     filename=entry_array[1]
     
+    # Make sure ctrl connection is established
     try:
       self.send("STOR " + filename)
     except:
       print("You must connect to server before using this command")
       return
   
+    #Open data port and send file
     self.openDataPort(cmd="stor", filename=filename)
     
 
@@ -216,13 +229,18 @@ class ftp_client:
       response_code = response[:3]
       response_message = response[4:]
 
+    #Exit on quit command
     if response_code == "221":
       print("response code: " + response_code + ", message: " + response_message)
       print("quitting")
       self.ctrlSock.close()
       exit()
-    else:
+    #Make sure file is available for retr command
+    elif response_code == "550":
       print("response code: " + response_code + ", message: " + response_message)
+      return False
+#     else:
+#       print("response code: " + response_code + ", message: " + response_message)
 
   def hi(self):
     self.send("cmd param1 param2")
@@ -243,15 +261,27 @@ class ftp_client:
       try:
         print("Waiting for server to connect to data socket")
         try:
+          # If file unavailable for retr command, return
+          if not self.get_response():
+            return
+          #Try to open data connection
           dataConn, addr = self.dataSock.accept()
         except:
           print("Timeout error while attempting to establish data connection")
           return
+      
+        #Print ctrl messages
         resp = str(self.ctrlSock.recv(256), "utf-8")
         print(resp)
+        
+        #Perform data thread operation
         fct = ftp_data_thread(socket=dataConn, cmd=cmd, filename=filename)
         fct.start()
         fct.join()
+        
+        #Print ctrl messages
+        resp = str(self.ctrlSock.recv(256), "utf-8")
+        print(resp)
         break
       except:
         print("Unexpected error: ", sys.exc_info()[0])
