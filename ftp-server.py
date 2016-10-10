@@ -90,6 +90,7 @@ class ftp_command_thread(threading.Thread):
     self.current_dir = os.path.abspath("./ftp-files/")
     self.data_socket = None
     threading.Thread.__init__(self)
+    self.finished_running = False
 
   def run(self):
     while True:
@@ -107,37 +108,23 @@ class ftp_command_thread(threading.Thread):
           cmd = cmd.rstrip("\r\n")
 
         split = cmd.lower().split(" ")
+        print("cmd: " + cmd)
 
-        if split[0] == "quit":
-          self.quit()
-          # return ends the thread?
-          return
-        elif split[0] == "list":
-          print("list")
-          if len(split) == 2:
-            self.list(split[1])
-          else:
-            self.list(self.current_dir)
-        elif split[0] == "retr":
-          print("retr")
-          if len(split) == 2:
-            self.retr(split[1])
-          else:
-            # error, must supply filename
-            print("retr error no filename")
-        elif split[0] == "stor":
-          print("stor")
-          if len(split) == 2:
-            self.stor(split[1])
-          else:
-            print("stor error no filename")
-        else:
-          print("Unhandled command: " + split[0])
+        try:
 
-      print("cmd: " + cmd)
+          # Dynamically call the command passing along the entire
+          # command array
+          getattr(self, split[0])(split)
+
+        except:
+          print("Unknown command: '" + split[0] + "'")
+          self.send_ctrl_response("500 Syntax error, command unrecognized.")
+
+      if self.finished_running:
+        return
 
   def send_ctrl_response(self, message, encoding="utf-8"):
-    print ("sending ctrl response: " + message)
+    print ("Sending CTRL response: " + message)
     self.socket.sendall(bytearray(message + "\r\n", encoding))
 
   def open_data_socket(self):
@@ -157,12 +144,29 @@ class ftp_command_thread(threading.Thread):
     self.data_socket = None
     self.send_ctrl_response('226 Closing data connection.  Requested file action successful.')
 
-  def quit(self):
+  def quit(self, commands):
     self.send_ctrl_response("221 closing control connection")
     self.socket.close()
     print("quitting")
 
-  def list(self, dir):
+    # Set finished_running so that the main loop will
+    # finish running
+    self.finished_running = True
+
+  def send_parameter_error_response(self):
+    self.send_ctrl_response("501 Syntax error in parameters or arguments.")
+
+  def list(self, commands):
+
+    if len(commands) > 2:
+      self.send_parameter_error_response()
+      print("LIST error: Too many parameters.")
+      return
+
+    # If there is a path given, use this, otherwise default
+    # to the current directory
+    dir = commands[1] if len(commands) == 2 else self.current_dir
+
     data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
@@ -184,8 +188,16 @@ class ftp_command_thread(threading.Thread):
       self.send_ctrl_response('451 Requested action aborted: local error in processing.')
 
   def retr(self, filename):
+
+    if len(commands) is not 2:
+      self.send_parameter_error_response()
+      print("RETR error: No filename.")
+      return
+
+    filename = commands[1]
+
     print ("server received retr cmd filename: " + filename)
-    filename = self.current_dir + "\\" + filename
+    filename = self.current_dir + "/" + filename
     print ("abs path: " + filename)
     if not os.path.exists(filename):
       self.send_ctrl_response("550 File Unavailable")
@@ -213,7 +225,15 @@ class ftp_command_thread(threading.Thread):
       self.send_ctrl_response("550 File Unavailable")
       return
 
-  def stor(self, filename):
+  def stor(self, commands):
+
+    if len(commands) is not 2:
+      self.send_parameter_error_response()
+      print("STOR error: No filename.")
+      return
+
+    filename = commands[1]
+
     filename = self.current_dir + "\\" + filename
     print ("abs path: " + filename)
 
