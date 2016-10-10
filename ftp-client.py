@@ -23,7 +23,7 @@ class ftp_data_thread(threading.Thread):
     if self.cmd == "list":
       self.list()
     elif self.cmd == "retr":
-      self.retr(self.filename)
+      self.retr()
     elif self.cmd == "stor":
       self.stor()
     else:
@@ -43,7 +43,8 @@ class ftp_data_thread(threading.Thread):
   def retr(self):
     try:
       print ("Retrieving file: " + self.filename)
-      full_filename = self.current_dir + "\\" + self.filename
+      full_filename = os.path.join(self.current_dir, self.filename)
+      print ("Full Dir: " + full_filename)
       f = open(full_filename, "wb+")
       try:
         data = self.dataConn.recv(1024)
@@ -61,7 +62,8 @@ class ftp_data_thread(threading.Thread):
 
   def stor(self):
       print ("Storing to file: " + self.filename)
-      full_filename = self.current_dir + "\\" + self.filename
+      full_filename = os.path.join(self.current_dir, self.filename)
+      print ("Full Dir: " + full_filename)
       try:
         f = open(full_filename, "rb")
         while True:

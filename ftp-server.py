@@ -186,7 +186,7 @@ class ftp_command_thread(threading.Thread):
     except:
       self.send_ctrl_response('451 Requested action aborted: local error in processing.')
 
-  def retr(self, filename):
+  def retr(self, commands):
 
     if len(commands) is not 2:
       self.send_parameter_error_response()
@@ -196,7 +196,7 @@ class ftp_command_thread(threading.Thread):
     filename = commands[1]
 
     print ("server received retr cmd filename: " + filename)
-    filename = self.current_dir + "/" + filename
+    filename = os.path.join(self.current_dir, filename)
     print ("abs path: " + filename)
     if not os.path.exists(filename):
       self.send_ctrl_response("550 File Unavailable")
@@ -233,7 +233,7 @@ class ftp_command_thread(threading.Thread):
 
     filename = commands[1]
 
-    filename = self.current_dir + "\\" + filename
+    filename = os.path.join(self.current_dir, filename)
     print ("abs path: " + filename)
 
     if os.access(filename, os.R_OK) or not os.path.isfile(filename):
