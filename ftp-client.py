@@ -189,6 +189,7 @@ class ftp_client:
     else:
       self.send("QUIT")
       response = self.get_response()
+      self.ctrlSock().close()
       # TODO: Should we exit program here or just end the connection with the server?
       # exit()
 
