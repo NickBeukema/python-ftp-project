@@ -67,7 +67,7 @@ class ftp_data_thread(threading.Thread):
       except:
         data_thread_status = "problem receiving data"
     except:
-      data_thread_status = "cant open file status"
+      data_thread_status = "Can't open file status"
 
     self.data_socket.close()
     data_thread_status = "226 Closing data connection. Requested file action successful"
@@ -79,7 +79,6 @@ class ftp_data_thread(threading.Thread):
       self.data_socket.sendall(bytearray(self.data, "utf-8"))
       self.data_socket.close()
     except:
-
       data_thread_status = "425 Can't open data connection"
 
     data_thread_status = "226 Closing data connection. Requested file action successful"
