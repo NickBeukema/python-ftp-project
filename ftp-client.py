@@ -11,15 +11,28 @@ ftp_client_default_port = 7712
 
 
 class ftp_data_thread(threading.Thread):
-  def __init__(self, socket, cmd, filename):
-    self.dataConn = socket
+  def __init__(self, cmd, filename):
+
+    self.dataPort = 6548
+    self.sock = socket.socket()
+    self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    self.sock.bind(("127.0.0.1", self.dataPort))
+    self.sock.listen(1)
+    self.sock.settimeout(1)
+
     self.cmd = cmd
     self.filename = filename
     self.current_dir = os.path.abspath("./ftp-downloads/")
 
+
     threading.Thread.__init__(self)
 
   def run(self):
+    try:
+      self.dataConn, addr = self.sock.accept()
+    except:
+      return
+
     if self.cmd == "list":
       self.list()
     elif self.cmd == "retr":
@@ -30,14 +43,15 @@ class ftp_data_thread(threading.Thread):
       print('Unhandled data thread command')
 
   def list(self):
-    print("Receiving file list")
+    print("\nReceiving file list\n")
     total_payload = ""  # Concatenate list of files
     data = str(self.dataConn.recv(1024), "utf-8")
     while data:
       total_payload += data
       data = str(self.dataConn.recv(1024), "utf-8")
+
     # Print the entire list
-    print(total_payload)
+    print("\nFTP File List\n--------------\n" + total_payload + "\n")
     self.dataConn.close()
 
   def retr(self):
@@ -62,10 +76,8 @@ class ftp_data_thread(threading.Thread):
       if not f.closed:
         f.close()
 
-      print("Cannot open file status")
+      print("Cannot open file.")
 
-    f.close()
-    print("File received.")
     self.dataConn.close()
 
   def stor(self):
@@ -87,9 +99,25 @@ class ftp_data_thread(threading.Thread):
       self.data = f.read(8)
       if not self.data: break
       self.dataConn.sendall(self.data)
-    f.close()
-    self.dataConn.close()
 
+    f.close()
+
+class response_thread(threading.Thread):
+  def __init__(self, conn):
+
+    self.conn = conn
+    threading.Thread.__init__(self)
+
+  def run(self):
+    while True:
+      self.empty()
+
+  def empty(self):
+    try:
+      response = str(self.conn.recv(1024), "utf-8")
+      print(response)
+    except:
+      return
 
 class ftp_client:
   def __init__(self):
@@ -106,18 +134,22 @@ class ftp_client:
       entry_array = input("\nPlease enter command: ").lower().split(" ")
       if entry_array[0] == "connect":
         self.connect(entry_array)
+
       elif entry_array[0] == "list":
         self.list(entry_array)
+
       elif entry_array[0] == "retr":
         self.retr(entry_array)
+
       elif entry_array[0] == "stor":
         self.stor(entry_array)
+
       elif entry_array[0] == "quit":
         self.quit(entry_array)
       else:
         print("Unknown command: '" + entry_array[0] + "'")
 
-
+      self.response_thread.empty()
 
   # CONNECT FUNCTION
   def connect(self, entry_array):
@@ -127,7 +159,6 @@ class ftp_client:
       print("Invalid command - CONNECT Parameters: <server name/IP address> <server port>")
       print("USING DEFAULT TO MAKE OUR LIVES EASIER")
       entry_array = ["connect", "127.0.0.1", 7711]
-      # return
 
     # Parse control port to integer value
     try:
@@ -140,7 +171,11 @@ class ftp_client:
     try:
       self.ctrlSock.connect((entry_array[1], ctrlPort))
       # after connection is established, we need to wait for the 220 response from the server "awaiting input"
-      self.get_response()
+
+      self.response_thread = response_thread(self.ctrlSock)
+      self.response_thread.setDaemon(True)
+      self.response_thread.start()
+
     except ConnectionRefusedError:
       print("Connection refused - check port number")
       return
@@ -155,7 +190,6 @@ class ftp_client:
   def list(self, entry_array):
 
     # Make sure correct amount of parameters were passed
-    # Can we pass in a directory?
     if len(entry_array) != 1:
       print("Invalid command - LIST requires no additional parameters")
       return
@@ -169,7 +203,6 @@ class ftp_client:
 
     # Open data port and receive list
     self.openDataPort(cmd="list")
-
 
   # RETRIEVE FUNCTION
   def retr(self, entry_array):
@@ -212,7 +245,6 @@ class ftp_client:
     #Open data port and send file
     self.openDataPort(cmd="stor", filename=filename)
 
-
   # QUIT FUNCTION
   def quit(self, entry_array):
 
@@ -222,87 +254,26 @@ class ftp_client:
       return
     else:
       self.send("QUIT")
-      response = self.get_response()
-      self.ctrlSock().close()
-      # TODO: Should we exit program here or just end the connection with the server?
-      # exit()
 
-  def get_response(self):
-    response = self.ctrlSock.recv(1024)
-    return self.parse_response(response.decode("utf-8"))
-
-  def parse_response(self, response):
-    if (len(response) == 3):
-      response_code = response
-      response_message = ""
-    else:
-      response_code = response[:3]
-      response_message = response[4:]
-
-    #Exit on quit command
-    if response_code == "221":
-      print("response code: " + response_code + ", message: " + response_message)
-      print("quitting")
-      self.ctrlSock.close()
+      # self.ctrlSock().close()
+      self.response_thread.empty()
       exit()
-    #Make sure file is available for retr command
-#     elif response_code == "550":
-#       print("response code: " + response_code + ", message: " + response_message)
-#       return False
-    else:
-      print("response code: " + response_code + ", message: " + response_message)
-      return True
-
 
   def send(self, message, encoding="utf-8"):
       self.ctrlSock.sendall(bytearray(message + "\r\n", encoding))
 
-
   def openDataPort(self, cmd, filename=""):
-    self.dataPort = 6548
-    self.dataSock = socket.socket()
-    self.dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    self.dataSock.bind(("127.0.0.1", self.dataPort))
-    self.dataSock.listen(1)
-    self.dataSock.settimeout(2)
 
-    while True:
-      try:
-        print("Waiting for server to connect to data socket")
-        try:
-          #Try to open data connection
-          dataConn, addr = self.dataSock.accept()
-        except:
-          print("Timeout error while attempting to establish data connection")
-          if cmd=="retr":
-            print("Check that file name is correct")
+    try:
+      fct = ftp_data_thread(cmd=cmd, filename=filename)
+      fct.start()
+      fct.join()
 
-          self.get_response()
-          return
-
-        #Print ctrl messages before opening data connection
-
-        resp = self.get_response()
-        print(resp)
-
-        #Perform data thread operation
-        fct = ftp_data_thread(socket=dataConn, cmd=cmd, filename=filename)
-        fct.start()
-        fct.join()
-
-        print("Finished data thread")
-
-        #Print ctrl messages after closing data thread
-        resp = str(self.ctrlSock.recv(256), "utf-8")
-        print(resp)
-        break
-      except:
-        print("Unexpected error: ", sys.exc_info()[0])
-        print("Unexpected error: ", sys.exc_info()[1])
-        print("Unexpected error: ", sys.exc_info()[2])
-        self.dataSock.close()
-        exit()
-
+    except:
+      print("Unexpected error: ", sys.exc_info()[0])
+      print("Unexpected error: ", sys.exc_info()[1])
+      print("Unexpected error: ", sys.exc_info()[2])
+      exit()
 
 if __name__ == '__main__':
   client = ftp_client()

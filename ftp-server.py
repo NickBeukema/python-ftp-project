@@ -35,7 +35,7 @@ class ftp_data_thread(threading.Thread):
       self.data_socket.connect(("127.0.0.1", 6548))
       self.data_socket.sendall(bytearray(self.data))
       self.data_socket.close()
-      data_thread_status = "226 Closing data connection. Requested file action successful"
+      data_thread_status = "226 Closing data connection"
     except:
       data_thread_status = "425 Can't open data connection"
 
@@ -54,15 +54,16 @@ class ftp_data_thread(threading.Thread):
           file = open(filename, "wb")
           print (filename)
           file.write(data)
+
           while True:
             if not data:
-              print ('no data...')
               break
             print (data)
             file.write(data)
             data = self.data_socket.recv(1024)
+
           file.close()
-          data_thread_status = "226 Closing data connection. Requested file action successful"
+          data_thread_status = "226 Closing data connection"
       except:
         data_thread_status = "problem receiving data"
     except:
@@ -76,7 +77,7 @@ class ftp_data_thread(threading.Thread):
       self.data_socket.connect(("127.0.0.1", 6548))
       self.data_socket.sendall(bytearray(self.data, "utf-8"))
       self.data_socket.close()
-      data_thread_status = "226 Closing data connection. Requested file action successful"
+      data_thread_status = "226 Closing data connection"
     except:
       data_thread_status = "425 Can't open data connection"
 
