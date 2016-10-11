@@ -39,10 +39,10 @@ class ftp_data_thread(threading.Thread):
       self.data_socket.connect(("127.0.0.1", 6548))
       self.data_socket.sendall(bytearray(self.data))
       self.data_socket.close()
+      data_thread_status = "226 Closing data connection. Requested file action successful"
     except:
       data_thread_status = "425 Can't open data connection"
 
-    data_thread_status = "226 Closing data connection. Requested file action successful"
 
   def stor(self, filename):
     global data_thread_status
@@ -68,13 +68,13 @@ class ftp_data_thread(threading.Thread):
             file.write(data)
             data = self.data_socket.recv(1024)
           file.close()
+          data_thread_status = "226 Closing data connection. Requested file action successful"
       except:
         data_thread_status = "problem receiving data"
     except:
       data_thread_status = "Can't open file status"
 
     self.data_socket.close()
-    data_thread_status = "226 Closing data connection. Requested file action successful"
 
   def list(self):
     global data_thread_status
@@ -82,10 +82,10 @@ class ftp_data_thread(threading.Thread):
       self.data_socket.connect(("127.0.0.1", 6548))
       self.data_socket.sendall(bytearray(self.data, "utf-8"))
       self.data_socket.close()
+      data_thread_status = "226 Closing data connection. Requested file action successful"
     except:
       data_thread_status = "425 Can't open data connection"
 
-    data_thread_status = "226 Closing data connection. Requested file action successful"
 
 class ftp_command_thread(threading.Thread):
   def __init__(self, socket):
@@ -130,23 +130,6 @@ class ftp_command_thread(threading.Thread):
     print ("Sending CTRL response: " + message)
     self.socket.sendall(bytearray(message + "\r\n", encoding))
 
-  # def open_data_socket(self):
-  #   if self.data_socket is None:
-  #     self.send_ctrl_response('150 About to open data connection.')
-  #     try:
-  #       self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  #       self.data_socket.connect(("127.0.0.1", 6548))
-  #       print("Data connection established.")
-  #     except:
-  #       self.send_ctrl_response('425 Can’t open data connection.')
-  #   else:
-  #     self.send_ctrl_response('125 Data connection already open, transfer starting')
-
-  # def close_data_socket(self):
-  #   self.data_socket.close()
-  #   self.data_socket = None
-  #   self.send_ctrl_response('226 Closing data connection.  Requested file action successful.')
-
   def quit(self, commands):
     self.send_ctrl_response("221 closing control connection")
     self.socket.close()
@@ -183,10 +166,12 @@ class ftp_command_thread(threading.Thread):
       self.send_ctrl_response('150 About to open data connection.')
       data_thread.start()
       data_thread.join()
-      if data_thread_status == "":
-        self.send_ctrl_response("226 Closing data connection, requested file action successful")
-      else:
-        self.send_ctrl_response(data_thread_status)
+
+      # if data_thread_status == "":
+      #   self.send_ctrl_response("226 Closing data connection, requested file action successful")
+      # else:
+
+      self.send_ctrl_response(data_thread_status)
     except:
       self.send_ctrl_response('451 Requested action aborted: local error in processing.')
 

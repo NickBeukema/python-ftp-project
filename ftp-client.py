@@ -52,19 +52,26 @@ class ftp_data_thread(threading.Thread):
         while data:
           f.write(data)
           data = self.dataConn.recv(1024)
+
       except:
         print("Problem receiving data")
+
+      f.close()
+      print("File received.")
     except:
+      if not f.closed:
+        f.close()
+
       print("Cannot open file status")
-          
-    f.close()
-    print("File received.")
+
     self.dataConn.close()
 
   def stor(self):
-      # Establish full directory path
+
+    # Establish full directory path
     full_filename = os.path.join(self.current_dir, self.filename)
     print("Full Dir " + full_filename)
+
     try:
       f = open(full_filename, "rb")  # Opens file, if it exists
       print("Storing to file: " + self.filename)
@@ -87,6 +94,9 @@ class ftp_client:
     self.ctrlSock = socket.socket()
     self.ctrlSock.settimeout(2)
     self.current_dir = os.path.abspath("./ftp-downloads/")
+
+    if not os.path.exists(self.current_dir):
+      os.makedirs(self.current_dir)
     
     # MAIN LOOP
     ################
@@ -102,8 +112,6 @@ class ftp_client:
         self.stor(entry_array)
       elif entry_array[0] == "quit":
         self.quit(entry_array)
-      elif entry_array[0] == "hi":
-        self.hi()
       else:
         print("Unknown command: '" + entry_array[0] + "'")
       
@@ -244,9 +252,6 @@ class ftp_client:
       return True
 
 
-  def hi(self):
-    self.send("cmd param1 param2")
-
   def send(self, message, encoding="utf-8"):
       self.ctrlSock.sendall(bytearray(message + "\r\n", encoding))
 
@@ -269,21 +274,20 @@ class ftp_client:
           print("Timeout error while attempting to establish data connection")
           if cmd=="retr":
             print("Check that file name is correct")
+
+          self.get_response()
           return
       
         #Print ctrl messages before opening data connection
-        resp = str(self.ctrlSock.recv(256), "utf-8")
-        print(resp)
+        self.get_response()
         
         #Perform data thread operation
         fct = ftp_data_thread(socket=dataConn, cmd=cmd, filename=filename)
         fct.start()
         fct.join()
+
         print("Finished data thread")
         
-        #Print ctrl messages after closing data thread
-        resp = str(self.ctrlSock.recv(256), "utf-8")
-        print(resp)
         break
       except:
         print("Unexpected error: ", sys.exc_info()[0])
