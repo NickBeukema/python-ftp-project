@@ -219,7 +219,7 @@ class ftp_client:
 
   def get_response(self):
     response = self.ctrlSock.recv(1024)
-    self.parse_response(response.decode("utf-8"))
+    return self.parse_response(response.decode("utf-8"))
 
   def parse_response(self, response):
     if (len(response) == 3):
@@ -239,8 +239,10 @@ class ftp_client:
     elif response_code == "550":
       print("response code: " + response_code + ", message: " + response_message)
       return False
-#     else:
-#       print("response code: " + response_code + ", message: " + response_message)
+    else:
+      print("response code: " + response_code + ", message: " + response_message)
+      return True
+
 
   def hi(self):
     self.send("cmd param1 param2")
@@ -278,10 +280,11 @@ class ftp_client:
         fct = ftp_data_thread(socket=dataConn, cmd=cmd, filename=filename)
         fct.start()
         fct.join()
+        print("Finished data thread")
         
         #Print ctrl messages
-        resp = str(self.ctrlSock.recv(256), "utf-8")
-        print(resp)
+        #resp = str(self.ctrlSock.recv(256), "utf-8")
+        #print(resp)
         break
       except:
         print("Unexpected error: ", sys.exc_info()[0])
