@@ -149,7 +149,10 @@ class ftp_client:
       else:
         print("Unknown command: '" + entry_array[0] + "'")
 
-      self.response_thread.empty()
+      try:
+        self.response_thread.empty()
+      except:
+        continue
 
   # CONNECT FUNCTION
   def connect(self, entry_array):
@@ -180,7 +183,7 @@ class ftp_client:
       print("Connection refused - check port number")
       return
     except OSError:
-      print("Connect request was made on an already connected socket or the server not listening on that port.")
+      print("Connect request was made on an already connected socket or the server is not listening on that port.")
       return
 
     print("Connection established on port {}.".format(ctrlPort))
@@ -253,7 +256,10 @@ class ftp_client:
       print("Invalid command - QUIT requires no additional parameters")
       return
     else:
-      self.send("QUIT")
+      try:
+        self.send("QUIT")
+      except:
+        exit()
 
       # self.ctrlSock().close()
       self.response_thread.empty()
