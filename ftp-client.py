@@ -15,7 +15,7 @@ class ftp_data_thread(threading.Thread):
     self.dataConn = socket
     self.cmd = cmd
     self.filename = filename
-    self.current_dir = os.path.abspath("./ftp-downloads/")
+    self.current_dir = os.path.abspath("./ftp-files/")
 
     threading.Thread.__init__(self)
 
@@ -56,7 +56,7 @@ class ftp_data_thread(threading.Thread):
         print("Problem receiving data")
     except:
       print("Cannot open file status")
-          
+
     f.close()
     print("File received.")
     self.dataConn.close()
@@ -72,7 +72,7 @@ class ftp_data_thread(threading.Thread):
       print("File not found")
       self.dataConn.close()
       return
-      
+
     # Send all data in file
     while True:
       self.data = f.read(8)
@@ -87,7 +87,7 @@ class ftp_client:
     self.ctrlSock = socket.socket()
     self.ctrlSock.settimeout(2)
     self.current_dir = os.path.abspath("./ftp-downloads/")
-    
+
     # MAIN LOOP
     ################
     while True:
@@ -106,8 +106,8 @@ class ftp_client:
         self.hi()
       else:
         print("Unknown command: '" + entry_array[0] + "'")
-      
-      
+
+
 
   # CONNECT FUNCTION
   def connect(self, entry_array):
@@ -156,7 +156,7 @@ class ftp_client:
     except:
       print("You must connect to server before using this command")
       return
-  
+
     # Open data port and receive list
     self.openDataPort(cmd="list")
 
@@ -170,38 +170,38 @@ class ftp_client:
       return
 
     filename = entry_array[1]
-    
+
     # Make sure ctrl connection is established
     try:
       self.send("RETR " + filename)
     except:
       print("You must connect to server before using this command")
       return
-  
+
     #Open data port and retrieve file
     self.openDataPort(cmd="retr", filename=filename)
 
 
   # STORE FUNCTION
   def stor(self, entry_array):
-    
+
     # Make sure correct amount of parameters were passed
     if len(entry_array) != 2:
       print("Invalid command - STOR Parameters: <filename>")
       return
-  
+
     filename=entry_array[1]
-    
+
     # Make sure ctrl connection is established
     try:
       self.send("STOR " + filename)
     except:
       print("You must connect to server before using this command")
       return
-  
+
     #Open data port and send file
     self.openDataPort(cmd="stor", filename=filename)
-    
+
 
   # QUIT FUNCTION
   def quit(self, entry_array):
@@ -270,17 +270,17 @@ class ftp_client:
           if cmd=="retr":
             print("Check that file name is correct")
           return
-      
+
         #Print ctrl messages before opening data connection
         resp = str(self.ctrlSock.recv(256), "utf-8")
         print(resp)
-        
+
         #Perform data thread operation
         fct = ftp_data_thread(socket=dataConn, cmd=cmd, filename=filename)
         fct.start()
         fct.join()
         print("Finished data thread")
-        
+
         #Print ctrl messages after closing data thread
         resp = str(self.ctrlSock.recv(256), "utf-8")
         print(resp)
