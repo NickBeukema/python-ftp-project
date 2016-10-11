@@ -239,8 +239,8 @@ class ftp_client:
     elif response_code == "550":
       print("response code: " + response_code + ", message: " + response_message)
       return False
-#     else:
-#       print("response code: " + response_code + ", message: " + response_message)
+    else:
+      print("response code: " + response_code + ", message: " + response_message)
 
   def hi(self):
     self.send("cmd param1 param2")
@@ -261,9 +261,6 @@ class ftp_client:
       try:
         print("Waiting for server to connect to data socket")
         try:
-          # If file unavailable for retr command, return
-          if not self.get_response():
-            return
           #Try to open data connection
           dataConn, addr = self.dataSock.accept()
         except:
