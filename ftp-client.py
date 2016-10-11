@@ -236,9 +236,9 @@ class ftp_client:
       self.ctrlSock.close()
       exit()
     #Make sure file is available for retr command
-    elif response_code == "550":
-      print("response code: " + response_code + ", message: " + response_message)
-      return False
+#     elif response_code == "550":
+#       print("response code: " + response_code + ", message: " + response_message)
+#       return False
     else:
       print("response code: " + response_code + ", message: " + response_message)
       return True
@@ -257,22 +257,21 @@ class ftp_client:
     self.dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.dataSock.bind(("127.0.0.1", self.dataPort))
     self.dataSock.listen(1)
-    self.dataSock.settimeout(3)
+    self.dataSock.settimeout(2)
 
     while True:
       try:
         print("Waiting for server to connect to data socket")
         try:
-          # If file unavailable for retr command, return
-          if not self.get_response():
-            return
           #Try to open data connection
           dataConn, addr = self.dataSock.accept()
         except:
           print("Timeout error while attempting to establish data connection")
+          if cmd=="retr":
+            print("Check that file name is correct")
           return
       
-        #Print ctrl messages
+        #Print ctrl messages before opening data connection
         resp = str(self.ctrlSock.recv(256), "utf-8")
         print(resp)
         
@@ -282,9 +281,9 @@ class ftp_client:
         fct.join()
         print("Finished data thread")
         
-        #Print ctrl messages
-        #resp = str(self.ctrlSock.recv(256), "utf-8")
-        #print(resp)
+        #Print ctrl messages after closing data thread
+        resp = str(self.ctrlSock.recv(256), "utf-8")
+        print(resp)
         break
       except:
         print("Unexpected error: ", sys.exc_info()[0])
