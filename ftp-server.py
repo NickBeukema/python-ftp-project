@@ -9,8 +9,6 @@ data_port = command_port - 1
 ftp_client_default_port = 7712  # we can't use default ports on the same computer, in a real ftp client the default port for the client is the command_port
 
 data_thread_status = ""
-c = threading.Condition()
-
 
 class ftp_data_thread(threading.Thread):
   def __init__(self, socket, cmd, data, filename=""):
@@ -96,31 +94,25 @@ class ftp_command_thread(threading.Thread):
     self.finished_running = False
 
   def run(self):
+    self.send_ctrl_response("220 awaiting input")
     while True:
-      self.send_ctrl_response("220 awaiting input")
-
       # wait for commands
       cmd = str(self.socket.recv(1024), "utf-8")
 
       if cmd:
         if not cmd.endswith("\r\n"):
-          print("ERRONEOUS CMD FROM CLIENT")
-          print(cmd)
+          self.send_ctrl_response("500 Syntax error, command unrecognized.")
           continue
         else:
           cmd = cmd.rstrip("\r\n")
 
         split = cmd.lower().split(" ")
-        print("cmd: " + cmd)
 
         try:
-
-          # Dynamically call the command passing along the entire
-          # command array
+          # Dynamically call the command passing along the entire command array
           getattr(self, split[0])(split)
 
         except:
-          print("Unknown command: '" + split[0] + "'")
           self.send_ctrl_response("500 Syntax error, command unrecognized.")
 
       if self.finished_running:
@@ -130,27 +122,9 @@ class ftp_command_thread(threading.Thread):
     print ("Sending CTRL response: " + message)
     self.socket.sendall(bytearray(message + "\r\n", encoding))
 
-  # def open_data_socket(self):
-  #   if self.data_socket is None:
-  #     self.send_ctrl_response('150 About to open data connection.')
-  #     try:
-  #       self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  #       self.data_socket.connect(("127.0.0.1", 6548))
-  #       print("Data connection established.")
-  #     except:
-  #       self.send_ctrl_response('425 Can’t open data connection.')
-  #   else:
-  #     self.send_ctrl_response('125 Data connection already open, transfer starting')
-
-  # def close_data_socket(self):
-  #   self.data_socket.close()
-  #   self.data_socket = None
-  #   self.send_ctrl_response('226 Closing data connection.  Requested file action successful.')
-
   def quit(self, commands):
     self.send_ctrl_response("221 closing control connection")
     self.socket.close()
-    print("quitting")
 
     # Set finished_running so that the main loop will
     # finish running
@@ -163,7 +137,6 @@ class ftp_command_thread(threading.Thread):
 
     if len(commands) > 2:
       self.send_parameter_error_response()
-      print("LIST error: Too many parameters.")
       return
 
     # If there is a path given, use this, otherwise default
@@ -238,14 +211,13 @@ class ftp_command_thread(threading.Thread):
     filename = commands[1]
 
     filename = os.path.join(self.current_dir, filename)
-    print ("abs path: " + filename)
 
+    #check for OS permissions or if the file does not exist we'll create it
     if os.access(filename, os.R_OK) or not os.path.isfile(filename):
       data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       try:
         data_thread = ftp_data_thread(socket=data_socket, cmd="stor", data="", filename=filename)
         self.send_ctrl_response('150 About to open data connection.')
-        print('starting stor thread')
         data_thread.start()
         data_thread.join()
         if data_thread_status == "":
