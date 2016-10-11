@@ -53,7 +53,6 @@ class ftp_data_thread(threading.Thread):
         if data:
           file = open(filename, "wb")
           print (filename)
-          file.write(data)
 
           while True:
             if not data:
